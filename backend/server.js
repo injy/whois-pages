@@ -26,8 +26,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Serve static files from frontend dist directory
-const frontendDistPath = path.join(__dirname, '../frontend/dist');
+// Serve static files from dist directory (same level as api folder)
+const frontendDistPath = path.join(__dirname, '..');
 app.use(express.static(frontendDistPath));
 
 // For SPA routing - serve index.html for all non-API routes that don't match static files
