@@ -1,0 +1,16 @@
+# Alibaba Cloud ESA (Edge Security Acceleration) Configuration
+# Deploy this project to Alibaba Cloud ESA
+
+runtime: nodejs18
+
+build:
+  command: npm run build
+
+start:
+  command: cd backend && node server.js
+
+env:
+  - key: NODE_ENV
+    value: production
+  - key: PORT
+    value: "3000"

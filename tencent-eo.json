@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "runtime": "nodejs18",
+  "build": {
+    "command": "npm run build",
+    "outputDir": "frontend/dist"
+  },
+  "start": {
+    "command": "node backend/server.js"
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

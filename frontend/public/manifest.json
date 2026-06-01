@@ -1,0 +1,16 @@
+{
+  "short_name": "WHOIS Lookup",
+  "name": "WHOIS Domain Lookup",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#e1f9f9",
+  "background_color": "#ffffff",
+  "description": "Query WHOIS and RDAP information for any domain name"
+}

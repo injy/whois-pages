@@ -1,0 +1,16 @@
+{
+  "name": "whois-domain-lookup",
+  "version": "1.0.0",
+  "description": "WHOIS/RDAP domain lookup application with Vue 3 frontend and Node.js backend",
+  "private": true,
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && node server.js",
+    "dev:backend": "cd backend && node server.js",
+    "dev:frontend": "cd frontend && npm run dev"
+  },
+  "keywords": ["whois", "rdap", "domain", "vue", "nodejs"],
+  "author": "",
+  "license": "ISC"
+}
