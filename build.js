@@ -2,7 +2,7 @@
 
 /**
  * Build script for cloud deployment platforms
- * Installs all dependencies from root and builds frontend
+ * Forces installation and build in correct order
  */
 
 const { execSync } = require('child_process');
@@ -14,48 +14,57 @@ const frontendDir = path.join(rootDir, 'frontend');
 const backendDir = path.join(rootDir, 'backend');
 
 console.log('=== WHOIS Domain Lookup Build Script ===\n');
+console.log('Working directory:', rootDir);
 
 try {
-  // Step 1: Install root dependencies (includes vite, vue, etc.)
-  console.log('Step 1: Installing root dependencies...');
-  execSync('npm install', { cwd: rootDir, stdio: 'inherit' });
+  // Step 1: Install ALL dependencies explicitly
+  console.log('\n=== Step 1: Installing ALL dependencies ===');
 
-  // Step 2: Install backend dependencies
-  console.log('\nStep 2: Installing backend dependencies...');
-  execSync('npm install', { cwd: backendDir, stdio: 'inherit' });
+  // Root deps
+  console.log('\n[1/3] Root dependencies...');
+  if (fs.existsSync(path.join(rootDir, 'package.json'))) {
+    execSync('npm install --prefer-offline', { cwd: rootDir, stdio: 'inherit' });
+  }
 
-  // Step 3: Install frontend dependencies
-  console.log('\nStep 3: Installing frontend dependencies...');
-  execSync('npm install', { cwd: frontendDir, stdio: 'inherit' });
+  // Backend deps
+  console.log('\n[2/3] Backend dependencies...');
+  if (fs.existsSync(path.join(backendDir, 'package.json'))) {
+    execSync('npm install --prefer-offline', { cwd: backendDir, stdio: 'inherit' });
+  }
 
-  // Step 4: Build frontend using root-level vite
-  console.log('\nStep 4: Building frontend...');
-  
-  // Try multiple ways to run vite
-  const vitePaths = [
-    path.join(rootDir, 'node_modules', '.bin', 'vite'),
-    path.join(frontendDir, 'node_modules', '.bin', 'vite')
-  ];
-  
-  let viteCmd = null;
-  for (const vp of vitePaths) {
-    if (fs.existsSync(vp)) {
-      viteCmd = vp;
-      console.log(`Found vite at: ${vp}`);
-      break;
+  // Frontend deps - THE CRITICAL ONE
+  console.log('\n[3/3] Frontend dependencies...');
+  if (fs.existsSync(path.join(frontendDir, 'package.json'))) {
+    // Force clean install
+    const frontendNodeModules = path.join(frontendDir, 'node_modules');
+    if (fs.existsSync(frontendNodeModules)) {
+      console.log('Removing existing node_modules...');
+      fs.rmSync(frontendNodeModules, { recursive: true, force: true });
     }
+    execSync('npm install --no-cache', { cwd: frontendDir, stdio: 'inherit' });
   }
-  
-  if (!viteCmd) {
-    // Fallback: use npx from root
-    viteCmd = 'npx vite';
-    console.log('Using npx vite as fallback');
+
+  // Verify vite is installed
+  console.log('\n=== Verifying vite installation ===');
+  const viteBin = path.join(frontendDir, 'node_modules', '.bin', 'vite');
+  const vitePkg = path.join(frontendDir, 'node_modules', 'vite');
+
+  console.log('Vite binary exists:', fs.existsSync(viteBin));
+  console.log('Vite package exists:', fs.existsSync(vitePkg));
+
+  if (!fs.existsSync(vitePkg)) {
+    throw new Error('Vite was not installed correctly in frontend directory!');
   }
-  
-  execSync(`${viteCmd} build`, { cwd: frontendDir, stdio: 'inherit' });
+
+  // Step 2: Build frontend
+  console.log('\n=== Step 2: Building frontend ===');
+  execSync(`node ${viteBin} build`, { cwd: frontendDir, stdio: 'inherit' });
 
   console.log('\n=== Build completed successfully! ===');
 } catch (error) {
-  console.error('\nBuild failed:', error.message);
+  console.error('\n!!! BUILD FAILED !!!');
+  console.error('Error:', error.message);
+  if (error.stdout) console.error('stdout:', error.stdout.toString());
+  if (error.stderr) console.error('stderr:', error.stderr.toString());
   process.exit(1);
 }
