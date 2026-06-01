@@ -2,15 +2,26 @@ const CACHE_NAME = 'whois-cache-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json',
-  '/favicon.ico'
+  '/manifest.json'
 ];
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
+      // Cache assets individually to avoid failure if one is missing
+      return Promise.allSettled(
+        STATIC_ASSETS.map((url) =>
+          fetch(url).then((response) => {
+            if (response.status === 200) {
+              return cache.put(url, response);
+            }
+          }).catch(() => {
+            // Skip failed requests
+            console.warn(`[SW] Failed to cache: ${url}`);
+          })
+        )
+      );
     })
   );
   self.skipWaiting();
