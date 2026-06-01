@@ -1,16 +1,12 @@
 {
   "name": "whois-domain-lookup",
   "version": "1.0.0",
-  "description": "WHOIS/RDAP domain lookup application with Vue 3 frontend and Node.js backend",
+  "description": "WHOIS/RDAP domain lookup application",
   "private": true,
   "scripts": {
-    "build": "npm install && node build.js",
-    "start": "node backend/server.js",
-    "dev": "node backend/server.js"
+    "build": "vite build --config frontend/vite.config.js",
+    "start": "node backend/server.js"
   },
-  "keywords": ["whois", "rdap", "domain", "vue", "nodejs"],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@vitejs/plugin-vue": "^6.0.7",
     "axios": "^1.16.1",
