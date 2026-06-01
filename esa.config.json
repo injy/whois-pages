@@ -5,8 +5,8 @@
     "command": "npm run build",
     "outputDir": "frontend/dist"
   },
-  "start": {
-    "command": "node backend/server.js"
+  "function": {
+    "entry": "backend/index.js"
   },
   "env": {
     "NODE_ENV": "production"
