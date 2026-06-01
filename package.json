@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build --config frontend/vite.config.js",
+    "build": "npm install && node build.js",
     "start": "node backend/server.js",
     "dev": "node backend/server.js"
   },
