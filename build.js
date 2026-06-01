@@ -23,9 +23,12 @@ try {
   console.log('\nStep 2: Installing frontend dependencies...');
   execSync('npm install', { cwd: frontendDir, stdio: 'inherit' });
 
-  // Step 3: Build frontend
+  // Step 3: Build frontend using local vite
   console.log('\nStep 3: Building frontend...');
-  execSync('npx vite build', { cwd: frontendDir, stdio: 'inherit' });
+  
+  // Use the locally installed vite from frontend/node_modules
+  const vitePath = path.join(frontendDir, 'node_modules', '.bin', 'vite');
+  execSync(`${vitePath} build`, { cwd: frontendDir, stdio: 'inherit' });
 
   console.log('\n=== Build completed successfully! ===');
 } catch (error) {
