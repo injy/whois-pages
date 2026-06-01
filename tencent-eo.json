@@ -3,10 +3,10 @@
   "runtime": "nodejs18",
   "build": {
     "command": "npm run build",
-    "outputDir": "frontend/dist"
+    "outputDir": "dist"
   },
   "start": {
-    "command": "node backend/server.js"
+    "command": "node dist/api/server.js"
   },
   "env": {
     "NODE_ENV": "production"

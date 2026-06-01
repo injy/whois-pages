@@ -4,8 +4,10 @@
   "description": "WHOIS/RDAP domain lookup application",
   "private": true,
   "scripts": {
-    "build": "vite build",
-    "start": "node backend/server.js"
+    "build": "node scripts/build.js",
+    "build:frontend": "vite build",
+    "start": "node dist/api/server.js",
+    "start:dev": "node backend/server.js"
   },
   "dependencies": {
     "@vitejs/plugin-vue": "^6.0.7",
