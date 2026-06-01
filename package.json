@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "WHOIS/RDAP domain lookup application with Vue 3 frontend and Node.js backend",
   "private": true,
-  "type": "module",
   "scripts": {
     "build": "npm install && node build.js",
     "start": "node backend/server.js",
