@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import axios from 'axios';
+import { queryRdap } from '../services/rdapService';
+import { getPrices } from '../services/priceService';
 
 // Use relative URL for same-server deployment, or env var for separate deployment
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
@@ -67,7 +69,7 @@ export const useSearchStore = defineStore('search', () => {
       const searchDomain = domain.value.trim();
       const promises = [];
 
-      // Query WHOIS if selected
+      // Query WHOIS if selected (requires backend API)
       if (showWhois.value) {
         promises.push(
           axios.get(`${API_BASE_URL}/whois`, {
@@ -80,16 +82,27 @@ export const useSearchStore = defineStore('search', () => {
         );
       }
 
-      // Query RDAP if selected
+      // Query RDAP if selected (client-side)
       if (showRdap.value) {
         promises.push(
-          axios.get(`${API_BASE_URL}/rdap`, {
-            params: { domain: searchDomain }
-          }).then(res => res.data).catch(err => ({
-            code: 1,
-            msg: err.message,
-            data: null
-          }))
+          (async () => {
+            try {
+              const parts = searchDomain.split('.');
+              const tld = parts[parts.length - 1];
+              const rdapData = await queryRdap(searchDomain, tld);
+              return {
+                code: 0,
+                msg: 'Query successful',
+                data: rdapData
+              };
+            } catch (err) {
+              return {
+                code: 1,
+                msg: err.message,
+                data: null
+              };
+            }
+          })()
         );
       }
 
@@ -143,13 +156,17 @@ export const useSearchStore = defineStore('search', () => {
     pricesLoading.value = true;
 
     try {
-      const response = await axios.get(`${API_BASE_URL}/prices`, {
-        params: { domain: searchDomain }
-      });
+      // Extract TLD
+      const parts = searchDomain.split('.');
+      const tld = parts[parts.length - 1];
 
-      if (response.data.code === 0) {
-        prices.value = response.data.data;
-      }
+      // Get prices from client-side service
+      const priceData = getPrices(tld);
+
+      // Simulate network delay for realistic UX (minimum 500ms)
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      prices.value = priceData;
     } catch (err) {
       console.error('Price query failed:', err);
     } finally {
