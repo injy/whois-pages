@@ -1,10 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import axios from 'axios';
-import { queryRdap } from '../services/rdapService';
-import { getPrices } from '../services/priceService';
 
-// Use relative URL for same-server deployment, or env var for separate deployment
+// Use relative URL for same-server deployment
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const useSearchStore = defineStore('search', () => {
@@ -69,40 +67,29 @@ export const useSearchStore = defineStore('search', () => {
       const searchDomain = domain.value.trim();
       const promises = [];
 
-      // Query WHOIS if selected (requires backend API)
+      // Query WHOIS via backend API
       if (showWhois.value) {
         promises.push(
           axios.get(`${API_BASE_URL}/whois`, {
             params: { domain: searchDomain }
           }).then(res => res.data).catch(err => ({
             code: 1,
-            msg: err.message,
+            msg: err.response?.data?.msg || err.message,
             data: null
           }))
         );
       }
 
-      // Query RDAP if selected (client-side)
+      // Query RDAP via backend API (was client-side direct fetch with CORS issues)
       if (showRdap.value) {
         promises.push(
-          (async () => {
-            try {
-              const parts = searchDomain.split('.');
-              const tld = parts[parts.length - 1];
-              const rdapData = await queryRdap(searchDomain, tld);
-              return {
-                code: 0,
-                msg: 'Query successful',
-                data: rdapData
-              };
-            } catch (err) {
-              return {
-                code: 1,
-                msg: err.message,
-                data: null
-              };
-            }
-          })()
+          axios.get(`${API_BASE_URL}/rdap`, {
+            params: { domain: searchDomain }
+          }).then(res => res.data).catch(err => ({
+            code: 1,
+            msg: err.response?.data?.msg || err.message,
+            data: null
+          }))
         );
       }
 
@@ -128,12 +115,19 @@ export const useSearchStore = defineStore('search', () => {
         available: whoisData?.data?.available || false
       };
 
-      // Check for errors
-      if (whoisData?.code === 1 && !rdapData) {
-        error.value = whoisData.msg;
+      // Collect errors from both queries
+      const errors = [];
+      if (whoisData?.code !== 0 && whoisData?.msg) {
+        errors.push(`WHOIS: ${whoisData.msg}`);
+      }
+      if (rdapData?.code !== 0 && rdapData?.msg) {
+        errors.push(`RDAP: ${rdapData.msg}`);
+      }
+      if (errors.length > 0) {
+        error.value = errors.join(' | ');
       }
 
-      // Query prices if selected
+      // Query prices via backend API if selected
       if (showPrices.value) {
         queryPrices(searchDomain);
       }
@@ -156,17 +150,13 @@ export const useSearchStore = defineStore('search', () => {
     pricesLoading.value = true;
 
     try {
-      // Extract TLD
-      const parts = searchDomain.split('.');
-      const tld = parts[parts.length - 1];
+      const res = await axios.get(`${API_BASE_URL}/prices`, {
+        params: { domain: searchDomain }
+      });
 
-      // Get prices from client-side service
-      const priceData = getPrices(tld);
-
-      // Simulate network delay for realistic UX (minimum 500ms)
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      prices.value = priceData;
+      if (res.data.code === 0) {
+        prices.value = res.data.data;
+      }
     } catch (err) {
       console.error('Price query failed:', err);
     } finally {

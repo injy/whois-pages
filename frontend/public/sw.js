@@ -1,4 +1,4 @@
-const CACHE_NAME = 'whois-cache-v1';
+const CACHE_NAME = 'whois-cache-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -9,7 +9,6 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Cache assets individually to avoid failure if one is missing
       return Promise.allSettled(
         STATIC_ASSETS.map((url) =>
           fetch(url).then((response) => {
@@ -17,7 +16,6 @@ self.addEventListener('install', (event) => {
               return cache.put(url, response);
             }
           }).catch(() => {
-            // Skip failed requests
             console.warn(`[SW] Failed to cache: ${url}`);
           })
         )
@@ -41,7 +39,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event with differentiated caching strategies
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') {
@@ -53,19 +51,40 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Navigation requests (HTML): network-first, fallback to cache
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          // Update cache with latest version
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(event.request)
+            .then((cachedResponse) => cachedResponse || caches.match('/index.html'));
+        })
+    );
+    return;
+  }
+
+  // Static assets (JS/CSS/images with hashed names): cache-first, network update in background
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Return cached response and update cache in background
+        // Return cached version immediately, update cache in background
         event.waitUntil(
           fetch(event.request).then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, networkResponse);
+              return caches.open(CACHE_NAME).then((cache) => {
+                return cache.put(event.request, networkResponse);
               });
             }
           }).catch(() => {
-            // Network request failed, just use cache
+            // Network failed, cached version is fine
           })
         );
         return cachedResponse;
@@ -73,24 +92,19 @@ self.addEventListener('fetch', (event) => {
 
       // Not in cache, fetch from network
       return fetch(event.request).then((networkResponse) => {
-        // Don't cache non-successful responses
         if (!networkResponse || networkResponse.status !== 200) {
           return networkResponse;
         }
 
-        // Clone the response
         const responseToCache = networkResponse.clone();
-
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseToCache);
         });
 
         return networkResponse;
       }).catch(() => {
-        // Network failed, return offline page if it's a navigation request
-        if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
+        // Network failed and not cached - nothing we can do
+        return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
       });
     })
   );

@@ -1,10 +1,15 @@
 /**
  * Serverless Function Entry for Alibaba Cloud ESA / Tencent Cloud EO
- * This file exports the Express app as a handler function
+ * Exports Express app as handler for serverless/edge function platforms.
+ *
+ * Note: For production (tencent-eo.json), server.js is used instead.
+ * This file provides an alternative entry point for platforms that expect
+ * a module export rather than a listening server.
  */
 
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const cors = require('cors');
 
 // Create Express app
@@ -28,16 +33,26 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Serve static files from frontend dist directory
-const frontendDistPath = path.join(__dirname, '../frontend/dist');
+// Serve static files - auto-detect between production (dist/api -> dist/)
+// and development (backend/ -> dist/)
+const tryPaths = [
+  path.join(__dirname, '..'), // production: dist/api -> dist/
+  path.join(__dirname, '../dist'), // dev: backend -> dist/
+];
+const frontendDistPath = tryPaths.find(p => fs.existsSync(path.join(p, 'index.html'))) || tryPaths[0];
+
 app.use(express.static(frontendDistPath));
 
-// For SPA routing
+// SPA routing
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return next();
   }
-  res.sendFile(path.join(frontendDistPath, 'index.html'));
+  const indexPath = path.join(frontendDistPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  next();
 });
 
 // Error handling
@@ -55,6 +70,7 @@ if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(`Static files: ${frontendDistPath}`);
   });
 }
 

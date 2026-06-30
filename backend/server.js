@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const cors = require('cors');
 const dotenv = require('dotenv');
 
@@ -26,19 +27,26 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Serve static files from dist directory (same level as api folder)
-const frontendDistPath = path.join(__dirname, '..');
+// Serve static files - auto-detect between production (dist/api -> dist/)
+// and development (backend/ -> dist/)
+const tryPaths = [
+  path.join(__dirname, '..'),           // production: dist/api -> dist/
+  path.join(__dirname, '../dist'),      // dev: backend -> dist/
+];
+const frontendDistPath = tryPaths.find(p => fs.existsSync(path.join(p, 'index.html'))) || tryPaths[0];
+
 app.use(express.static(frontendDistPath));
 
-// For SPA routing - serve index.html for all non-API routes that don't match static files
+// SPA routing - serve index.html for all non-API routes
 app.use((req, res, next) => {
-  // Skip if it's an API route
   if (req.path.startsWith('/api/')) {
     return next();
   }
-
-  // Serve index.html for SPA routing
-  res.sendFile(path.join(frontendDistPath, 'index.html'));
+  const indexPath = path.join(frontendDistPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  next();
 });
 
 // Error handling middleware
@@ -53,6 +61,7 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`WHOIS Domain Lookup server running on port ${PORT}`);
+  console.log(`Static files: ${frontendDistPath}`);
   console.log(`Frontend: http://localhost:${PORT}`);
   console.log(`API: http://localhost:${PORT}/api`);
 });

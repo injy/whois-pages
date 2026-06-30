@@ -34,16 +34,11 @@ console.log('Copying backend files...');
 copyDirectory(backendSrcDir, distBackendDir);
 console.log('Backend files copied.');
 
-// Copy necessary config files to dist
-console.log('Copying configuration files...');
-const filesToCopy = ['package.json', '.env'];
-for (const file of filesToCopy) {
-  const srcPath = path.resolve(rootDir, file);
-  if (fs.existsSync(srcPath)) {
-    fs.copyFileSync(srcPath, path.resolve(distDir, file));
-    console.log(`Copied ${file}`);
-  }
-}
+// Copy package.json to dist (for production dependency install)
+console.log('Copying package.json...');
+const pkgSrcPath = path.resolve(rootDir, 'package.json');
+fs.copyFileSync(pkgSrcPath, path.resolve(distDir, 'package.json'));
+console.log('Copied package.json');
 
 console.log('Build completed successfully!');
 console.log(`Output directory: ${distDir}`);
@@ -66,6 +61,10 @@ function copyDirectory(src, dest) {
       }
       copyDirectory(srcPath, destPath);
     } else {
+      // Skip .env (env vars should come from deployment platform)
+      if (entry.name === '.env') {
+        continue;
+      }
       fs.copyFileSync(srcPath, destPath);
     }
   }

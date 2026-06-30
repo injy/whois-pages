@@ -18,21 +18,16 @@ router.get('/', (req, res) => {
   }
 
   try {
-    // Extract TLD
     const parts = domain.split('.');
     const tld = parts[parts.length - 1];
 
-    // Get prices
     const prices = getPrices(tld);
 
-    // Simulate network delay for realistic UX (minimum 500ms)
-    setTimeout(() => {
-      res.json({
-        code: 0,
-        msg: 'Query successful',
-        data: prices
-      });
-    }, 500);
+    res.json({
+      code: 0,
+      msg: 'Query successful',
+      data: prices
+    });
   } catch (error) {
     console.error('Price query error:', error.message);
     res.status(500).json({
